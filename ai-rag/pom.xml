@@ -10,6 +10,15 @@
         <relativePath>../ai-parent/pom.xml</relativePath>
     </parent>
     <artifactId>ai-rag</artifactId>
+
+    <properties>
+        <langchain4j.version>1.13.0</langchain4j.version>
+        <!-- 与 langchain4j 主版本对齐的 ONNX 嵌入模型包（Central 上为 beta 线） -->
+        <langchain4j.embeddings.minilm.version>1.13.0-beta23</langchain4j.embeddings.minilm.version>
+        <skipTests>true</skipTests>
+        <maven.test.skip>true</maven.test.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.aics</groupId>
@@ -21,10 +30,40 @@
             <artifactId>ai-model</artifactId>
             <version>${project.version}</version>
         </dependency>
-    </dependencies>
+        <dependency>
+            <groupId>com.aics</groupId>
+            <artifactId>ai-prompt</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
-    <properties>
-        <skipTests>true</skipTests>
-        <maven.test.skip>true</maven.test.skip>
-    </properties>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
+            <version>${langchain4j.embeddings.minilm.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 </project>
