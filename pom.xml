@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.aics</groupId>
+    <artifactId>ai-customer-service</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>ai-customer-service</name>
+
+    <modules>
+        <module>ai-parent</module>
+        <module>ai-common</module>
+        <module>ai-model</module>
+        <module>ai-core</module>
+        <module>ai-prompt</module>
+        <module>ai-rag</module>
+        <module>ai-memory</module>
+        <module>ai-tools</module>
+        <module>ai-eval</module>
+        <module>ai-service</module>
+        <module>ai-webflux-chat</module>
+        <module>ai-admin-webmvc</module>
+        <module>ai-starter</module>
+    </modules>
+
+    <properties>
+        <skipTests>true</skipTests>
+        <maven.test.skip>true</maven.test.skip>
+    </properties>
+</project>

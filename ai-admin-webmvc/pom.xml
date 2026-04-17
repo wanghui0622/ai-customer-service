@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.aics</groupId>
+        <artifactId>ai-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../ai-parent/pom.xml</relativePath>
+    </parent>
+    <artifactId>ai-admin-webmvc</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>com.aics</groupId>
+            <artifactId>ai-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+
+    <properties>
+        <skipTests>true</skipTests>
+        <maven.test.skip>true</maven.test.skip>
+    </properties>
+</project>
