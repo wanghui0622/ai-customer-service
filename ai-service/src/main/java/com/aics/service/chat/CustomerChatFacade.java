@@ -1,32 +1,23 @@
 package com.aics.service.chat;
 
-import com.aics.core.chat.ChatService;
 import org.springframework.stereotype.Service;
 
 /**
- * 面向 Web 层的聊天门面，将请求委托给 {@link ChatService}，便于后续插入鉴权、限流、审计等横切逻辑。
+ * 对外统一入口（Web / RPC 等应仅依赖本门面），内部委托 {@link AiChatService}，便于鉴权、审计、限流等横切扩展。
  */
 @Service
 public class CustomerChatFacade {
 
-    /** 核心会话聊天服务。 */
-    private final ChatService chatService;
+    private final AiChatService aiChatService;
 
-    /**
-     * @param chatService 由 {@code ai-core} 提供的聊天编排 Bean
-     */
-    public CustomerChatFacade(ChatService chatService) {
-        this.chatService = chatService;
+    public CustomerChatFacade(AiChatService aiChatService) {
+        this.aiChatService = aiChatService;
     }
 
     /**
-     * 在指定会话下发起一轮问答。
-     *
-     * @param sessionId 会话 ID
-     * @param message   用户消息正文
-     * @return 模型回复文本
+     * 用户请求唯一入口：进入编排管道 {@link AiChatService#chat(String, String)}。
      */
     public String ask(String sessionId, String message) {
-        return chatService.chat(sessionId, message);
+        return aiChatService.chat(sessionId, message);
     }
 }
