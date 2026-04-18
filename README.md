@@ -25,9 +25,8 @@
 | `ai-tools` | 工具 / 函数调用侧扩展 |
 | `ai-eval` | 评估与实验相关 |
 | `ai-service` | 业务门面与模块组装 |
-| `ai-webflux-chat` | 响应式 Web 对话接口 |
-| `ai-admin-webmvc` | 管理端 Web（Spring MVC） |
-| `ai-starter` | 可执行聚合入口，启动完整应用 |
+| `ai-reactive-chat` | 纯 Netty WebFlux 聊天服务（独立部署，默认 8081） |
+| `ai-admin-webmvc` | 管理端与评估等 HTTP API（Spring MVC，可执行 fat jar，默认 8080） |
 
 ## 环境要求
 
@@ -50,19 +49,27 @@ mvn clean compile
 
 ## 运行
 
-从 `ai-starter` 启动 Spring Boot 应用：
+**管理后台 / 评估 / Prompt / RAG 等（Spring MVC）**：
 
 ```bash
-mvn -pl ai-starter spring-boot:run
+mvn -pl ai-admin-webmvc spring-boot:run
 ```
 
-主类：`com.aics.starter.AiCustomerServiceApplication`（扫描 `com.aics` 根包）。
+主类：`com.aics.adminwebmvc.AiCustomerServiceApplication`（扫描 `com.aics` 根包），默认端口 **8080**。
+
+**聊天（纯 Netty WebFlux）** 独立部署，默认端口 **8081**：
+
+```bash
+mvn -pl ai-reactive-chat spring-boot:run
+```
+
+主类：`com.aics.reactivechat.ReactiveChatApplication`。接口：`POST /api/chat`、`POST /api/chat/stream`。
 
 打包后运行：
 
 ```bash
-mvn -pl ai-starter package
-java -jar ai-starter/target/ai-starter-*.jar
+mvn -pl ai-admin-webmvc package
+java -jar ai-admin-webmvc/target/ai-admin-webmvc-*.jar
 ```
 
 ## 配置说明

@@ -23,6 +23,11 @@ public class InMemoryMemoryStore implements MemoryStore {
     private final Map<String, UserProfile> profiles = new ConcurrentHashMap<>();
 
     @Override
+    public List<String> listSessionIds() {
+        return sessions.keySet().stream().sorted().toList();
+    }
+
+    @Override
     public List<MessageTurn> listTurns(String sessionId) {
         return List.copyOf(sessions.getOrDefault(sessionId, List.of()));
     }

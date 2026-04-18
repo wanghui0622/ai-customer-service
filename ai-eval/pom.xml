@@ -10,6 +10,7 @@
         <relativePath>../ai-parent/pom.xml</relativePath>
     </parent>
     <artifactId>ai-eval</artifactId>
+
     <dependencies>
         <dependency>
             <groupId>com.aics</groupId>
@@ -18,10 +19,28 @@
         </dependency>
         <dependency>
             <groupId>com.aics</groupId>
-            <artifactId>ai-model</artifactId>
+            <artifactId>ai-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aics</groupId>
+            <artifactId>ai-prompt</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>com.aics.eval.demo.EvalDemoMain</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <properties>
         <skipTests>true</skipTests>

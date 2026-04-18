@@ -29,9 +29,8 @@
         <module>ai-tools</module>
         <module>ai-eval</module>
         <module>ai-service</module>
-        <module>ai-webflux-chat</module>
+        <module>ai-reactive-chat</module>
         <module>ai-admin-webmvc</module>
-        <module>ai-starter</module>
     </modules>
 
     <properties>

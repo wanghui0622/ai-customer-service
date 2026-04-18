@@ -3,12 +3,20 @@ package com.aics.memory.store;
 import com.aics.memory.model.MessageTurn;
 import com.aics.spi.UserProfile;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
  * 记忆存储抽象：短期（多轮对话）与长期（用户画像）分层，不包含格式化与 Prompt 决策。
  */
 public interface MemoryStore {
+
+    /**
+     * 列出当前已存在短期会话的 ID（仅部分实现支持，如进程内内存；Redis 等可返回空列表）。
+     */
+    default List<String> listSessionIds() {
+        return Collections.emptyList();
+    }
 
     /**
      * @param sessionId 会话标识，与业务侧 session 一致
