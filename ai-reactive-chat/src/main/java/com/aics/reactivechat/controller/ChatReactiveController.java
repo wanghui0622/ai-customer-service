@@ -1,8 +1,9 @@
 package com.aics.reactivechat.controller;
 
 import com.aics.reactivechat.dto.ChatRequest;
-import com.aics.reactivechat.dto.ChatResponse;
+import com.aics.reactivechat.dto.ChatTraceResponse;
 import com.aics.service.chat.CustomerChatFacade;
+import com.aics.service.config.ObservabilityProperties;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,17 +23,26 @@ import java.time.Duration;
 public class ChatReactiveController {
 
     private final CustomerChatFacade customerChatFacade;
+    private final ObservabilityProperties observabilityProperties;
 
-    public ChatReactiveController(CustomerChatFacade customerChatFacade) {
+    public ChatReactiveController(CustomerChatFacade customerChatFacade,
+                                  ObservabilityProperties observabilityProperties) {
         this.customerChatFacade = customerChatFacade;
+        this.observabilityProperties = observabilityProperties;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ChatResponse> chat(@RequestBody ChatRequest request) {
+    public Mono<ChatTraceResponse> chat(@RequestBody ChatRequest request) {
         require(request);
-        return Mono.fromCallable(() -> customerChatFacade.ask(request.sessionId(), request.message()))
-                .subscribeOn(Schedulers.boundedElastic())
-                .map(ChatResponse::new);
+        return Mono.fromCallable(() -> {
+                    if (observabilityProperties.isExposePromptTrace()) {
+                        return ChatTraceResponse.fromTrace(
+                                customerChatFacade.askWithTrace(request.sessionId(), request.message()));
+                    }
+                    String answer = customerChatFacade.ask(request.sessionId(), request.message());
+                    return ChatTraceResponse.answerOnly(answer);
+                })
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping(

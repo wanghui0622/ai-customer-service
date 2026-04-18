@@ -9,9 +9,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class MemoryProperties {
 
     /**
-     * 存储后端：{@code in-memory}（默认，单机 JVM）、{@code redis}（占位实现，需自行补全）。
+     * 存储后端：{@code in-memory}（默认，单机 JVM）、{@code redis}（需在可运行模块中加入
+     * {@code spring-boot-starter-data-redis} 并配置 {@code spring.data.redis.*}）。
      */
     private String store = "in-memory";
+
+    /**
+     * Redis 键前缀。
+     */
+    private String redisKeyPrefix = "aics:mem:";
+
+    /**
+     * 会话与画像键 TTL（秒），默认 7 天。
+     */
+    private long sessionTtlSeconds = 604800L;
 
     /**
      * 会话历史经 {@link com.aics.memory.format.MemoryFormatter} 输出时的最大字符数；
@@ -39,5 +50,21 @@ public class MemoryProperties {
      */
     public void setMaxHistoryChars(int maxHistoryChars) {
         this.maxHistoryChars = maxHistoryChars;
+    }
+
+    public String getRedisKeyPrefix() {
+        return redisKeyPrefix;
+    }
+
+    public void setRedisKeyPrefix(String redisKeyPrefix) {
+        this.redisKeyPrefix = redisKeyPrefix;
+    }
+
+    public long getSessionTtlSeconds() {
+        return sessionTtlSeconds;
+    }
+
+    public void setSessionTtlSeconds(long sessionTtlSeconds) {
+        this.sessionTtlSeconds = sessionTtlSeconds;
     }
 }

@@ -21,4 +21,12 @@ public class OrchestrationToolExecutor implements ToolExecutor {
     public String execute(String message) {
         return toolService.tryExecuteFromUserMessage(message);
     }
+
+    @Override
+    public String executeNamed(String toolName, String message) {
+        if (toolName == null || toolName.isBlank()) {
+            return execute(message);
+        }
+        return toolService.executeNamed(toolName.trim(), message == null ? "" : message);
+    }
 }

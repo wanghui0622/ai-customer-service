@@ -4,3 +4,41 @@ server:
 spring:
   application:
     name: ai-admin-service
+
+aics:
+  security:
+    api-key: ""
+  observability:
+    expose-prompt-trace: false
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      llm:
+        registerHealthIndicator: true
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+  retry:
+    instances:
+      llm:
+        maxAttempts: 2
+        waitDuration: 200ms
+  ratelimiter:
+    instances:
+      chat:
+        limitForPeriod: 120
+        limitRefreshPeriod: 1m
+        timeoutDuration: 0s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
+  metrics:
+    tags:
+      application: ${spring.application.name}
+

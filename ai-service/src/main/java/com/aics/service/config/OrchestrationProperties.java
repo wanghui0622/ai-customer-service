@@ -23,6 +23,12 @@ public class OrchestrationProperties {
      */
     private int minMessageLengthHintForRag = 12;
 
+    /**
+     * 是否启用 LLM 路由（{@link com.aics.agentrouter.LlmAgentRouter}）。
+     * 为 false 时仅使用规则路由器（与原先启发式门控等价）。
+     */
+    private boolean agentRouterLlmEnabled = true;
+
     public boolean isRagEnabled() {
         return ragEnabled;
     }
@@ -45,5 +51,13 @@ public class OrchestrationProperties {
 
     public void setMinMessageLengthHintForRag(int minMessageLengthHintForRag) {
         this.minMessageLengthHintForRag = minMessageLengthHintForRag;
+    }
+
+    public boolean isAgentRouterLlmEnabled() {
+        return agentRouterLlmEnabled;
+    }
+
+    public void setAgentRouterLlmEnabled(boolean agentRouterLlmEnabled) {
+        this.agentRouterLlmEnabled = agentRouterLlmEnabled;
     }
 }

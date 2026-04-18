@@ -1,5 +1,6 @@
 package com.aics.core.config;
 
+import com.aics.core.llm.OpenAiLlmClient;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,5 +31,10 @@ public class LlmConfig {
                 .logRequests(true)
                 .logResponses(true)
                 .build();
+    }
+
+    @Bean(name = "openAiLlmDelegate")
+    public OpenAiLlmClient openAiLlmDelegate(OpenAiChatModel openAiChatModel) {
+        return new OpenAiLlmClient(openAiChatModel);
     }
 }

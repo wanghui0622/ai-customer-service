@@ -6,3 +6,63 @@ spring:
     name: ai-reactive-chat
   main:
     web-application-type: reactive
+  # 使用 Redis 会话时取消注释并配置
+  # data:
+  #   redis:
+  #     host: localhost
+  #     port: 6379
+
+# 编排：LLM Agent 路由（会多一次模型调用）；关闭则回退启发式 RAG/Tool 门控
+aics:
+  orchestration:
+    agent-router-llm-enabled: true
+  observability:
+    # 开发环境可查看完整 prompt；生产建议 false
+    expose-prompt-trace: true
+  security:
+    # 非空则要求请求头 X-API-Key 匹配（先于 Spring Security 链）
+    api-key: ""
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+    instances:
+      llm:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 2
+        waitDuration: 200ms
+    instances:
+      llm:
+        baseConfig: default
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 120
+        limitRefreshPeriod: 1m
+        timeoutDuration: 0s
+    instances:
+      chat:
+        baseConfig: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  tracing:
+    sampling:
+      probability: 1.0
+  metrics:
+    tags:
+      application: ${spring.application.name}

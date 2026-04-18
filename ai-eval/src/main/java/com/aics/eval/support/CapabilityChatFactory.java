@@ -1,9 +1,10 @@
 package com.aics.eval.support;
 
+import com.aics.agentrouter.AgentDecision;
+import com.aics.agentrouter.FixedAgentRouter;
 import com.aics.eval.AiVersion;
 import com.aics.service.chat.AiChatService;
-import com.aics.service.orchestration.policy.RagEligibilityPolicy;
-import com.aics.service.orchestration.policy.ToolEligibilityPolicy;
+import com.aics.service.config.OrchestrationProperties;
 import com.aics.spi.KnowledgeRetriever;
 import com.aics.spi.ToolExecutor;
 import com.aics.prompt.composer.DefaultPromptComposer;
@@ -21,7 +22,16 @@ public final class CapabilityChatFactory {
     public static final String TOOL_JSON =
             "{\"orderId\":\"123\",\"status\":\"拣货中\",\"物流\":\"华东仓已揽收\"}";
 
+    private static final OrchestrationProperties EVAL_ORCH = evalOrchestration();
+
     private CapabilityChatFactory() {
+    }
+
+    private static OrchestrationProperties evalOrchestration() {
+        OrchestrationProperties p = new OrchestrationProperties();
+        p.setRagEnabled(true);
+        p.setToolsEnabled(true);
+        return p;
     }
 
     public static AiChatService build(AiVersion version, RecordingLlmClient llm) {
@@ -32,8 +42,8 @@ public final class CapabilityChatFactory {
                     m -> "",
                     new PassthroughPromptComposer(),
                     llm,
-                    m -> false,
-                    m -> false
+                    new FixedAgentRouter(AgentDecision.none()),
+                    EVAL_ORCH
             );
             case PROMPT -> new AiChatService(
                     new EvalChatMemory(""),
@@ -41,8 +51,8 @@ public final class CapabilityChatFactory {
                     m -> "",
                     new DefaultPromptComposer(),
                     llm,
-                    m -> false,
-                    m -> false
+                    new FixedAgentRouter(AgentDecision.none()),
+                    EVAL_ORCH
             );
             case RAG -> new AiChatService(
                     new EvalChatMemory(""),
@@ -50,8 +60,8 @@ public final class CapabilityChatFactory {
                     m -> "",
                     new DefaultPromptComposer(),
                     llm,
-                    m -> true,
-                    m -> false
+                    new FixedAgentRouter(new AgentDecision(true, false, "", "eval-rag")),
+                    EVAL_ORCH
             );
             case MEMORY -> new AiChatService(
                     new EvalChatMemory("用户: 钱付了吗\nAI: 已支付，待仓库发货。\n"),
@@ -59,8 +69,8 @@ public final class CapabilityChatFactory {
                     m -> "",
                     new DefaultPromptComposer(),
                     llm,
-                    m -> true,
-                    m -> false
+                    new FixedAgentRouter(new AgentDecision(true, false, "", "eval-memory")),
+                    EVAL_ORCH
             );
             case FULL -> new AiChatService(
                     new EvalChatMemory("用户: 钱付了吗\nAI: 已支付，待仓库发货。\n"),
@@ -68,8 +78,8 @@ public final class CapabilityChatFactory {
                     toolsOn(),
                     new DefaultPromptComposer(),
                     llm,
-                    m -> true,
-                    m -> true
+                    new FixedAgentRouter(new AgentDecision(true, true, "", "eval-full")),
+                    EVAL_ORCH
             );
         };
     }

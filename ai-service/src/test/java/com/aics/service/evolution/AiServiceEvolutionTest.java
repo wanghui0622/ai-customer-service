@@ -1,8 +1,9 @@
 package com.aics.service.evolution;
 
+import com.aics.agentrouter.AgentDecision;
+import com.aics.agentrouter.FixedAgentRouter;
 import com.aics.service.chat.AiChatService;
-import com.aics.service.orchestration.policy.RagEligibilityPolicy;
-import com.aics.service.orchestration.policy.ToolEligibilityPolicy;
+import com.aics.service.config.OrchestrationProperties;
 import com.aics.spi.ChatMemory;
 import com.aics.spi.KnowledgeRetriever;
 import com.aics.spi.LlmClient;
@@ -35,6 +36,15 @@ class AiServiceEvolutionTest {
     private static final String TOOL_ORDER_JSON =
             "{\"orderId\":\"123\",\"status\":\"拣货中\",\"warehouse\":\"华东仓\",\"payTime\":\"2026-04-17T10:00:00Z\",\"note\":\"预计12小时内交接快递\"}";
 
+    private static final OrchestrationProperties TEST_ORCH = testOrchestration();
+
+    private static OrchestrationProperties testOrchestration() {
+        OrchestrationProperties p = new OrchestrationProperties();
+        p.setRagEnabled(true);
+        p.setToolsEnabled(true);
+        return p;
+    }
+
     @Test
     @Order(1)
     void testBaseLLM() {
@@ -45,8 +55,8 @@ class AiServiceEvolutionTest {
                 m -> "",
                 new PassthroughPromptComposer(),
                 llm,
-                m -> false,
-                m -> false
+                new FixedAgentRouter(AgentDecision.none()),
+                TEST_ORCH
         );
         String answer = svc.chat(SESSION, QUESTION);
         printStage("BASE", answer);
@@ -64,8 +74,8 @@ class AiServiceEvolutionTest {
                 m -> "",
                 new DefaultPromptComposer(),
                 llm,
-                m -> false,
-                m -> false
+                new FixedAgentRouter(AgentDecision.none()),
+                TEST_ORCH
         );
         String answer = svc.chat(SESSION, QUESTION);
         printStage("PROMPT", answer);
@@ -79,16 +89,14 @@ class AiServiceEvolutionTest {
     void testRagEnhanced() {
         RecordingLlmClient llm = new RecordingLlmClient();
         KnowledgeRetriever rag = q -> List.of(KB_ORDER_SHIP);
-        RagEligibilityPolicy ragOn = m -> true;
-        ToolEligibilityPolicy toolOff = m -> false;
         AiChatService svc = new AiChatService(
                 new EmptyChatMemory(),
                 rag,
                 m -> "",
                 new DefaultPromptComposer(),
                 llm,
-                ragOn,
-                toolOff
+                new FixedAgentRouter(new AgentDecision(true, false, "", "test-rag")),
+                TEST_ORCH
         );
         String answer = svc.chat(SESSION, QUESTION);
         printStage("RAG", answer);
@@ -106,16 +114,14 @@ class AiServiceEvolutionTest {
         );
         KnowledgeRetriever rag = q -> List.of(KB_ORDER_SHIP);
         ToolExecutor tools = m -> TOOL_ORDER_JSON;
-        RagEligibilityPolicy ragOn = m -> true;
-        ToolEligibilityPolicy toolOn = m -> true;
         AiChatService svc = new AiChatService(
                 memory,
                 rag,
                 tools,
                 new DefaultPromptComposer(),
                 llm,
-                ragOn,
-                toolOn
+                new FixedAgentRouter(new AgentDecision(true, true, "", "test-full")),
+                TEST_ORCH
         );
         String answer = svc.chat(SESSION, QUESTION);
         printStage("FULL", answer);

@@ -14,7 +14,7 @@ public class RagProperties {
     private boolean enabled = true;
 
     /**
-     * 向量存储类型：{@code in-memory}（默认）、{@code h2}、{@code milvus}（占位）。
+     * 向量存储类型：{@code in-memory}（默认）、{@code h2}、{@code postgres}（JDBC+应用层余弦）、{@code milvus}（占位）。
      */
     private String vectorStore = "in-memory";
 
@@ -42,6 +42,15 @@ public class RagProperties {
      * H2 JDBC URL（仅当 {@code vector-store=h2} 时使用）。
      */
     private String h2JdbcUrl = "jdbc:h2:mem:rag-store;DB_CLOSE_DELAY=-1";
+
+    /**
+     * PostgreSQL JDBC URL（仅当 {@code vector-store=postgres}）。
+     */
+    private String postgresJdbcUrl = "jdbc:postgresql://localhost:5432/aics_rag";
+
+    private String postgresUsername = "aics";
+
+    private String postgresPassword = "aics";
 
     public boolean isEnabled() {
         return enabled;
@@ -97,5 +106,29 @@ public class RagProperties {
 
     public void setH2JdbcUrl(String h2JdbcUrl) {
         this.h2JdbcUrl = h2JdbcUrl;
+    }
+
+    public String getPostgresJdbcUrl() {
+        return postgresJdbcUrl;
+    }
+
+    public void setPostgresJdbcUrl(String postgresJdbcUrl) {
+        this.postgresJdbcUrl = postgresJdbcUrl;
+    }
+
+    public String getPostgresUsername() {
+        return postgresUsername;
+    }
+
+    public void setPostgresUsername(String postgresUsername) {
+        this.postgresUsername = postgresUsername;
+    }
+
+    public String getPostgresPassword() {
+        return postgresPassword;
+    }
+
+    public void setPostgresPassword(String postgresPassword) {
+        this.postgresPassword = postgresPassword;
     }
 }
