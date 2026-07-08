@@ -1,5 +1,6 @@
 package com.aics.prompt.composer;
 
+import com.aics.model.ToolCallRecord;
 import com.aics.spi.PromptComposer;
 import org.springframework.stereotype.Component;
 
@@ -27,5 +28,24 @@ public class DefaultPromptComposer implements PromptComposer {
         }
         sb.append("### 用户问题\n").append(message == null ? "" : message.trim());
         return sb.toString();
+    }
+
+    @Override
+    public String build(String history,
+                        List<String> context,
+                        String toolResult,
+                        String message,
+                        List<ToolCallRecord> toolCalls) {
+        if (toolCalls == null || toolCalls.isEmpty()) {
+            return build(history, context, toolResult, message);
+        }
+        StringBuilder toolSection = new StringBuilder();
+        for (int i = 0; i < toolCalls.size(); i++) {
+            ToolCallRecord call = toolCalls.get(i);
+            toolSection.append('[').append(i + 1).append("] ")
+                    .append(call.name()).append('\n')
+                    .append(call.output()).append("\n\n");
+        }
+        return build(history, context, toolSection.toString().trim(), message);
     }
 }

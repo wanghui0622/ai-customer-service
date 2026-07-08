@@ -2,7 +2,7 @@ package com.aics.service.evolution;
 
 import com.aics.agentrouter.AgentDecision;
 import com.aics.agentrouter.FixedAgentRouter;
-import com.aics.service.chat.AiChatService;
+import com.aics.service.chat.LinearChatPipeline;
 import com.aics.service.config.OrchestrationProperties;
 import com.aics.spi.ChatMemory;
 import com.aics.spi.KnowledgeRetriever;
@@ -49,7 +49,7 @@ class AiServiceEvolutionTest {
     @Order(1)
     void testBaseLLM() {
         RecordingLlmClient llm = new RecordingLlmClient();
-        AiChatService svc = new AiChatService(
+        LinearChatPipeline svc = new LinearChatPipeline(
                 new EmptyChatMemory(),
                 q -> List.of(),
                 m -> "",
@@ -58,7 +58,7 @@ class AiServiceEvolutionTest {
                 new FixedAgentRouter(AgentDecision.none()),
                 TEST_ORCH
         );
-        String answer = svc.chat(SESSION, QUESTION);
+        String answer = svc.chatWithTrace(SESSION, QUESTION).answer();
         printStage("BASE", answer);
         assertThat(answer).contains("纯模型");
         assertThat(llm.lastPrompt).doesNotContain("参考知识");
@@ -68,7 +68,7 @@ class AiServiceEvolutionTest {
     @Order(2)
     void testPromptEnhanced() {
         RecordingLlmClient llm = new RecordingLlmClient();
-        AiChatService svc = new AiChatService(
+        LinearChatPipeline svc = new LinearChatPipeline(
                 new EmptyChatMemory(),
                 q -> List.of(),
                 m -> "",
@@ -77,7 +77,7 @@ class AiServiceEvolutionTest {
                 new FixedAgentRouter(AgentDecision.none()),
                 TEST_ORCH
         );
-        String answer = svc.chat(SESSION, QUESTION);
+        String answer = svc.chatWithTrace(SESSION, QUESTION).answer();
         printStage("PROMPT", answer);
         assertThat(answer).contains("Prompt版");
         assertThat(llm.lastPrompt).contains("你是专业 AI 客服助手");
@@ -89,7 +89,7 @@ class AiServiceEvolutionTest {
     void testRagEnhanced() {
         RecordingLlmClient llm = new RecordingLlmClient();
         KnowledgeRetriever rag = q -> List.of(KB_ORDER_SHIP);
-        AiChatService svc = new AiChatService(
+        LinearChatPipeline svc = new LinearChatPipeline(
                 new EmptyChatMemory(),
                 rag,
                 m -> "",
@@ -98,7 +98,7 @@ class AiServiceEvolutionTest {
                 new FixedAgentRouter(new AgentDecision(true, false, "", "test-rag")),
                 TEST_ORCH
         );
-        String answer = svc.chat(SESSION, QUESTION);
+        String answer = svc.chatWithTrace(SESSION, QUESTION).answer();
         printStage("RAG", answer);
         assertThat(answer).contains("RAG");
         assertThat(llm.lastPrompt).contains("### 参考知识");
@@ -114,7 +114,7 @@ class AiServiceEvolutionTest {
         );
         KnowledgeRetriever rag = q -> List.of(KB_ORDER_SHIP);
         ToolExecutor tools = m -> TOOL_ORDER_JSON;
-        AiChatService svc = new AiChatService(
+        LinearChatPipeline svc = new LinearChatPipeline(
                 memory,
                 rag,
                 tools,
@@ -123,7 +123,7 @@ class AiServiceEvolutionTest {
                 new FixedAgentRouter(new AgentDecision(true, true, "", "test-full")),
                 TEST_ORCH
         );
-        String answer = svc.chat(SESSION, QUESTION);
+        String answer = svc.chatWithTrace(SESSION, QUESTION).answer();
         printStage("FULL", answer);
         assertThat(answer).contains("全能力");
         assertThat(llm.lastPrompt).contains("### 历史对话");
@@ -207,24 +207,7 @@ class AiServiceEvolutionTest {
         @Override
         public String chat(String prompt) {
             this.lastPrompt = prompt;
-            return fakeAnswer(prompt);
-        }
-
-        static String fakeAnswer(String prompt) {
-            boolean sys = prompt.contains("你是专业 AI 客服助手");
-            boolean rag = prompt.contains("### 参考知识");
-            boolean tool = prompt.contains("### 工具结果");
-            boolean mem = prompt.contains("### 历史对话");
-            if (sys && rag && tool && mem) {
-                return "【模拟答复-全能力】结合历史、知识库与订单工具：订单123当前「拣货中」，华东仓预计12小时内交快递；昨日已确认收款，与知识库发货时效一致。";
-            }
-            if (sys && rag && !tool) {
-                return "【模拟答复-RAG】依据参考知识：未发货常见于大促排期；您的订单123应已进入仓库流程，请留意物流更新。";
-            }
-            if (sys && !rag) {
-                return "【模拟答复-Prompt版】已按客服角色与段落结构组织问题；建议在后台核对订单与支付状态后再答复用户。";
-            }
-            return "【模拟答复-纯模型】仓库可能比较忙吧，一般等等就会发（未使用业务知识与订单数据，易泛化）。";
+            return EvolutionLlmFixtures.fakeAnswer(prompt);
         }
     }
 }

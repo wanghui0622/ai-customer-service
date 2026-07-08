@@ -31,4 +31,14 @@ public class CustomerChatFacade {
     public ChatTurnTraceResult askWithTrace(String sessionId, String message) {
         return aiChatService.chatWithTrace(sessionId, message);
     }
+
+    @RateLimiter(name = "chat")
+    public void askStream(String sessionId, String message, java.util.function.Consumer<String> onChunk) {
+        aiChatService.chatStream(sessionId, message, onChunk);
+    }
+
+    @RateLimiter(name = "chat")
+    public ChatTurnTraceResult resumeWithApproval(String sessionId, String approvalToken, String decision) {
+        return aiChatService.resumeWithApproval(sessionId, approvalToken, decision);
+    }
 }

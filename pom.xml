@@ -29,6 +29,8 @@
         <module>ai-tools</module>
         <module>ai-eval</module>
         <module>ai-agent-router</module>
+        <module>ai-graph</module>
+        <module>ai-integrations</module>
         <module>ai-service</module>
         <module>ai-reactive-chat</module>
         <module>ai-admin-webmvc</module>

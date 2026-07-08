@@ -5,5 +5,10 @@ package com.aics.spi;
  */
 public interface LlmClient {
 
+    /**
+     * 模型调用。
+     * @param prompt
+     * @return
+     */
     String chat(String prompt);
 }

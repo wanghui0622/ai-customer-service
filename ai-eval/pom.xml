@@ -24,6 +24,11 @@
         </dependency>
         <dependency>
             <groupId>com.aics</groupId>
+            <artifactId>ai-graph</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aics</groupId>
             <artifactId>ai-prompt</artifactId>
             <version>${project.version}</version>
         </dependency>

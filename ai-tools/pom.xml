@@ -20,6 +20,11 @@
             <artifactId>ai-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.aics</groupId>
+            <artifactId>ai-integrations</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <properties>

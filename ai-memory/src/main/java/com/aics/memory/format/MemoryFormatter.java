@@ -2,6 +2,7 @@ package com.aics.memory.format;
 
 import com.aics.memory.config.MemoryProperties;
 import com.aics.memory.model.MessageTurn;
+import com.aics.memory.store.MemoryStore;
 import com.aics.spi.UserProfile;
 import org.springframework.stereotype.Component;
 

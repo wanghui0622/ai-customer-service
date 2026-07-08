@@ -7,5 +7,10 @@ import java.util.List;
  */
 public interface KnowledgeRetriever {
 
+    /**
+     * 检索指定问题的知识。
+     * @param question
+     * @return
+     */
     List<String> retrieve(String question);
 }

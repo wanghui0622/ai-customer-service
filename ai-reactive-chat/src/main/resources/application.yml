@@ -15,7 +15,40 @@ spring:
 # 编排：LLM Agent 路由（会多一次模型调用）；关闭则回退启发式 RAG/Tool 门控
 aics:
   orchestration:
+    engine: graph
     agent-router-llm-enabled: true
+    graph:
+      enabled: true
+      react-enabled: true
+      max-steps: 20
+      max-tool-loops: 5
+      approval:
+        enabled: true
+        sensitive-tools: ticket_create
+      checkpoint:
+        store: memory
+      sub-graph:
+        enabled: true
+  integrations:
+    default-timeout: 5s
+    ticket-connector-id: ticket-service
+    order-connector-id: order-service
+    connectors:
+      ticket-service:
+        type: mock
+        operations:
+          create:
+            method: POST
+            path: /api/v1/tickets
+          query:
+            method: GET
+            path: /api/v1/tickets/{ticketId}
+      order-service:
+        type: mock
+        operations:
+          query:
+            method: GET
+            path: /api/v1/orders/{orderId}
   observability:
     # 开发环境可查看完整 prompt；生产建议 false
     expose-prompt-trace: true
@@ -24,31 +57,48 @@ aics:
     api-key: ""
 
 resilience4j:
+  # ==================== 熔断器配置 ====================
   circuitbreaker:
     configs:
       default:
+        # 注册健康指标，可通过 Actuator 端点监控熔断器状态
         registerHealthIndicator: true
+        # 滑动窗口大小：统计最近 20 次调用的成功率/失败率
         slidingWindowSize: 20
+        # 失败率阈值：当失败率达到 50% 时触发熔断
         failureRateThreshold: 50
+        # 熔断器打开状态的等待时间：30 秒后进入半开状态，尝试恢复
         waitDurationInOpenState: 30s
     instances:
+      # LLM 调用专用的熔断器实例，继承 default 配置
       llm:
         baseConfig: default
+
+  # ==================== 重试配置 ====================
   retry:
     configs:
       default:
+        # 最大重试次数：最多重试 2 次（总共最多调用 3 次）
         maxAttempts: 2
+        # 重试间隔时间：每次重试前等待 200 毫秒
         waitDuration: 200ms
     instances:
+      # LLM 调用专用的重试策略实例，继承 default 配置
       llm:
         baseConfig: default
+
+  # ==================== 限流器配置 ====================
   ratelimiter:
     configs:
       default:
+        # 每个周期允许的请求数量：每分钟最多 120 次请求
         limitForPeriod: 120
+        # 限流周期刷新时间：每 1 分钟重置计数器
         limitRefreshPeriod: 1m
+        # 获取许可的超时时间：0s 表示如果无可用许可立即拒绝，不等待
         timeoutDuration: 0s
     instances:
+      # 聊天接口专用的限流器实例，继承 default 配置
       chat:
         baseConfig: default
 

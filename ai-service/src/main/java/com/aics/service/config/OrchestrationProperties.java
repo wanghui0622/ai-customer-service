@@ -9,6 +9,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class OrchestrationProperties {
 
     /**
+     * 编排引擎：linear（七步管道）或 graph（LangGraph4j）。
+     */
+    private String engine = "graph";
+
+    /**
      * 是否允许走知识检索（关闭则永远不调用 RAG）。
      */
     private boolean ragEnabled = true;
@@ -28,6 +33,14 @@ public class OrchestrationProperties {
      * 为 false 时仅使用规则路由器（与原先启发式门控等价）。
      */
     private boolean agentRouterLlmEnabled = true;
+
+    public OrchestrationEngine getEngine() {
+        return OrchestrationEngine.valueOf(engine == null ? "GRAPH" : engine.trim().toUpperCase());
+    }
+
+    public void setEngine(String engine) {
+        this.engine = engine;
+    }
 
     public boolean isRagEnabled() {
         return ragEnabled;

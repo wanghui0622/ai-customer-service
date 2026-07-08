@@ -2,6 +2,7 @@ package com.aics.core.config;
 
 import com.aics.core.llm.OpenAiLlmClient;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,8 +34,22 @@ public class LlmConfig {
                 .build();
     }
 
+    @Bean
+    public OpenAiStreamingChatModel openAiStreamingChatModel() {
+        return OpenAiStreamingChatModel.builder()
+                .apiKey("demo")
+                .baseUrl("http://langchain4j.dev/demo/openai/v1")
+                .modelName("gpt-4o-mini")
+                .temperature(0.3)
+                .timeout(Duration.ofSeconds(60))
+                .logRequests(true)
+                .logResponses(true)
+                .build();
+    }
+
     @Bean(name = "openAiLlmDelegate")
-    public OpenAiLlmClient openAiLlmDelegate(OpenAiChatModel openAiChatModel) {
-        return new OpenAiLlmClient(openAiChatModel);
+    public OpenAiLlmClient openAiLlmDelegate(OpenAiChatModel openAiChatModel,
+                                             OpenAiStreamingChatModel openAiStreamingChatModel) {
+        return new OpenAiLlmClient(openAiChatModel, openAiStreamingChatModel);
     }
 }

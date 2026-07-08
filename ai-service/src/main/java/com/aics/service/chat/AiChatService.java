@@ -1,36 +1,59 @@
 package com.aics.service.chat;
 
-import com.aics.agentrouter.AgentDecision;
-import com.aics.agentrouter.AgentRouter;
+import com.aics.graph.CustomerServiceGraph;
+import com.aics.graph.context.OrchestrationContext;
+import com.aics.graph.state.ChatGraphState;
 import com.aics.service.chat.dto.ChatTurnTraceResult;
+import com.aics.service.config.OrchestrationEngine;
 import com.aics.service.config.OrchestrationProperties;
 import com.aics.spi.ChatMemory;
 import com.aics.spi.KnowledgeRetriever;
 import com.aics.spi.LlmClient;
 import com.aics.spi.PromptComposer;
 import com.aics.spi.ToolExecutor;
+import com.aics.agentrouter.AgentRouter;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * 系统唯一编排入口：Agent 路由决策 → 聚合 memory / RAG / tools，经 prompt 构建后调用 LLM，不写具体领域实现。
- * <p>
- * 流程：load memory → {@link AgentRouter} →（可选）RAG →（可选）tools → build prompt → LLM → save memory。<br>
- * 路由可由 LLM（JSON）或规则实现，见 {@code aics.orchestration.agent-router-llm-enabled}。
+ * 系统唯一编排入口：按配置委托线性管道或 LangGraph 图编排。
  */
 @Service
 public class AiChatService {
 
-    private final ChatMemory memory;
-    private final KnowledgeRetriever rag;
-    private final ToolExecutor tools;
-    private final PromptComposer promptComposer;
-    private final LlmClient llm;
-    private final AgentRouter agentRouter;
+    public void chatStream(String sessionId, String message, java.util.function.Consumer<String> onChunk) {
+        if (!(llm instanceof com.aics.spi.StreamingLlmClient streaming) || !streaming.supportsStreaming()) {
+            onChunk.accept(chat(sessionId, message));
+            return;
+        }
+        String prompt;
+        if (orchestrationProperties.getEngine() == OrchestrationEngine.GRAPH) {
+            ChatGraphState state = customerServiceGraph.invokeUntilPrompt(
+                    sessionId, message, toContext(orchestrationProperties));
+            prompt = state.prompt();
+            StringBuilder answer = new StringBuilder();
+            streaming.stream(prompt, chunk -> {
+                answer.append(chunk);
+                onChunk.accept(chunk);
+            });
+            customerServiceGraph.saveAnswer(sessionId, message, answer.toString());
+            return;
+        }
+        prompt = linearChatPipeline.buildPromptOnly(sessionId, message);
+        StringBuilder answer = new StringBuilder();
+        streaming.stream(prompt, chunk -> {
+            answer.append(chunk);
+            onChunk.accept(chunk);
+        });
+        linearChatPipeline.saveAnswer(sessionId, message, answer.toString());
+    }
+
+    private final LinearChatPipeline linearChatPipeline;
+    private final CustomerServiceGraph customerServiceGraph;
     private final OrchestrationProperties orchestrationProperties;
+    private final LlmClient llm;
 
     public AiChatService(ChatMemory memory,
                          KnowledgeRetriever rag,
@@ -38,54 +61,56 @@ public class AiChatService {
                          PromptComposer promptComposer,
                          LlmClient llm,
                          AgentRouter agentRouter,
-                         OrchestrationProperties orchestrationProperties) {
-        this.memory = Objects.requireNonNull(memory);
-        this.rag = Objects.requireNonNull(rag);
-        this.tools = Objects.requireNonNull(tools);
-        this.promptComposer = Objects.requireNonNull(promptComposer);
-        this.llm = Objects.requireNonNull(llm);
-        this.agentRouter = Objects.requireNonNull(agentRouter);
+                         OrchestrationProperties orchestrationProperties,
+                         CustomerServiceGraph customerServiceGraph) {
+        this.linearChatPipeline = new LinearChatPipeline(
+                memory, rag, tools, promptComposer, llm, agentRouter, orchestrationProperties);
+        this.customerServiceGraph = Objects.requireNonNull(customerServiceGraph);
         this.orchestrationProperties = Objects.requireNonNull(orchestrationProperties);
+        this.llm = llm;
     }
 
-    /**
-     * 完整对话编排：聚合上下文 → 生成 prompt → 调用模型 → 持久化本轮。
-     *
-     * @param sessionId 会话 ID
-     * @param message   用户当前输入
-     * @return 模型回复文本
-     */
     public String chat(String sessionId, String message) {
         return chatWithTrace(sessionId, message).answer();
     }
 
-    /**
-     * 与 {@link #chat(String, String)} 相同管道，额外返回 Agent / RAG / Tool / Prompt 快照。
-     */
     public ChatTurnTraceResult chatWithTrace(String sessionId, String message) {
-        String history = memory.loadHistory(sessionId);
+        if (orchestrationProperties.getEngine() == OrchestrationEngine.GRAPH) {
+            return fromGraphState(customerServiceGraph.invoke(
+                    sessionId,
+                    message,
+                    toContext(orchestrationProperties)));
+        }
+        return linearChatPipeline.chatWithTrace(sessionId, message);
+    }
 
-        AgentDecision decision = agentRouter.route(message, history);
+    public ChatTurnTraceResult resumeWithApproval(String sessionId, String approvalToken, String decision) {
+        ChatGraphState state = customerServiceGraph.resume(sessionId, approvalToken, decision);
+        return fromGraphState(state);
+    }
 
-        boolean useRag = orchestrationProperties.isRagEnabled() && decision.useRag();
-        List<String> context = useRag ? rag.retrieve(message) : Collections.emptyList();
+    private static OrchestrationContext toContext(OrchestrationProperties properties) {
+        return new OrchestrationContext(
+                properties.isRagEnabled(),
+                properties.isToolsEnabled(),
+                properties.isAgentRouterLlmEnabled());
+    }
 
-        boolean useTools = orchestrationProperties.isToolsEnabled() && decision.useTools();
-        String toolResult = useTools
-                ? tools.executeNamed(decision.toolName(), message)
-                : "";
-
-        String prompt = promptComposer.build(history, context, toolResult, message);
-        String answer = llm.chat(prompt);
-        memory.saveMessage(sessionId, message, answer);
+    private static ChatTurnTraceResult fromGraphState(ChatGraphState state) {
         return new ChatTurnTraceResult(
-                answer,
-                decision,
-                useRag,
-                useTools,
-                List.copyOf(context),
-                toolResult,
-                prompt
+                state.answer(),
+                state.routerDecision(),
+                state.ragUsed(),
+                state.toolsUsed(),
+                List.copyOf(state.ragContext()),
+                state.toolResult(),
+                state.prompt(),
+                List.copyOf(state.toolCalls()),
+                List.copyOf(state.executedNodes()),
+                state.graphExecutionId(),
+                state.durationMs(),
+                state.pendingApproval(),
+                state.approvalToken()
         );
     }
 }

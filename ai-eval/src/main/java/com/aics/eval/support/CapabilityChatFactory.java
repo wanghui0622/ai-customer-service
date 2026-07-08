@@ -1,11 +1,17 @@
 package com.aics.eval.support;
 
 import com.aics.agentrouter.AgentDecision;
+import com.aics.agentrouter.AgentRouter;
 import com.aics.agentrouter.FixedAgentRouter;
 import com.aics.eval.AiVersion;
+import com.aics.graph.CustomerServiceGraph;
+import com.aics.graph.config.GraphOrchestrationProperties;
 import com.aics.service.chat.AiChatService;
 import com.aics.service.config.OrchestrationProperties;
+import com.aics.spi.ChatMemory;
 import com.aics.spi.KnowledgeRetriever;
+import com.aics.spi.PromptComposer;
+import com.aics.spi.ToolCatalog;
 import com.aics.spi.ToolExecutor;
 import com.aics.prompt.composer.DefaultPromptComposer;
 
@@ -29,59 +35,98 @@ public final class CapabilityChatFactory {
 
     private static OrchestrationProperties evalOrchestration() {
         OrchestrationProperties p = new OrchestrationProperties();
+        p.setEngine("linear");
         p.setRagEnabled(true);
         p.setToolsEnabled(true);
+        p.setAgentRouterLlmEnabled(false);
         return p;
     }
 
     public static AiChatService build(AiVersion version, RecordingLlmClient llm) {
-        return switch (version) {
-            case BASE -> new AiChatService(
-                    new EvalChatMemory(""),
-                    q -> List.of(),
-                    m -> "",
-                    new PassthroughPromptComposer(),
-                    llm,
-                    new FixedAgentRouter(AgentDecision.none()),
-                    EVAL_ORCH
-            );
-            case PROMPT -> new AiChatService(
-                    new EvalChatMemory(""),
-                    q -> List.of(),
-                    m -> "",
-                    new DefaultPromptComposer(),
-                    llm,
-                    new FixedAgentRouter(AgentDecision.none()),
-                    EVAL_ORCH
-            );
-            case RAG -> new AiChatService(
-                    new EvalChatMemory(""),
-                    ragOn(),
-                    m -> "",
-                    new DefaultPromptComposer(),
-                    llm,
-                    new FixedAgentRouter(new AgentDecision(true, false, "", "eval-rag")),
-                    EVAL_ORCH
-            );
-            case MEMORY -> new AiChatService(
-                    new EvalChatMemory("用户: 钱付了吗\nAI: 已支付，待仓库发货。\n"),
-                    ragOn(),
-                    m -> "",
-                    new DefaultPromptComposer(),
-                    llm,
-                    new FixedAgentRouter(new AgentDecision(true, false, "", "eval-memory")),
-                    EVAL_ORCH
-            );
-            case FULL -> new AiChatService(
-                    new EvalChatMemory("用户: 钱付了吗\nAI: 已支付，待仓库发货。\n"),
-                    ragOn(),
-                    toolsOn(),
-                    new DefaultPromptComposer(),
-                    llm,
-                    new FixedAgentRouter(new AgentDecision(true, true, "", "eval-full")),
-                    EVAL_ORCH
-            );
-        };
+        try {
+            return switch (version) {
+                case BASE -> assemble(
+                        new EvalChatMemory(""),
+                        q -> List.of(),
+                        m -> "",
+                        new PassthroughPromptComposer(),
+                        llm,
+                        new FixedAgentRouter(AgentDecision.none())
+                );
+                case PROMPT -> assemble(
+                        new EvalChatMemory(""),
+                        q -> List.of(),
+                        m -> "",
+                        new DefaultPromptComposer(),
+                        llm,
+                        new FixedAgentRouter(AgentDecision.none())
+                );
+                case RAG -> assemble(
+                        new EvalChatMemory(""),
+                        ragOn(),
+                        m -> "",
+                        new DefaultPromptComposer(),
+                        llm,
+                        new FixedAgentRouter(new AgentDecision(true, false, "", "eval-rag"))
+                );
+                case MEMORY -> assemble(
+                        new EvalChatMemory("用户: 钱付了吗\nAI: 已支付，待仓库发货。\n"),
+                        ragOn(),
+                        m -> "",
+                        new DefaultPromptComposer(),
+                        llm,
+                        new FixedAgentRouter(new AgentDecision(true, false, "", "eval-memory"))
+                );
+                case FULL -> assemble(
+                        new EvalChatMemory("用户: 钱付了吗\nAI: 已支付，待仓库发货。\n"),
+                        ragOn(),
+                        toolsOn(),
+                        new DefaultPromptComposer(),
+                        llm,
+                        new FixedAgentRouter(new AgentDecision(true, true, "", "eval-full"))
+                );
+            };
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to build eval AiChatService", e);
+        }
+    }
+
+    private static AiChatService assemble(
+            ChatMemory memory,
+            KnowledgeRetriever rag,
+            ToolExecutor tools,
+            PromptComposer promptComposer,
+            RecordingLlmClient llm,
+            AgentRouter agentRouter) throws Exception {
+        CustomerServiceGraph graph = new CustomerServiceGraph(
+                memory,
+                rag,
+                tools,
+                promptComposer,
+                llm,
+                agentRouter,
+                emptyCatalog(),
+                evalGraphProperties());
+        return new AiChatService(
+                memory,
+                rag,
+                tools,
+                promptComposer,
+                llm,
+                agentRouter,
+                EVAL_ORCH,
+                graph);
+    }
+
+    private static GraphOrchestrationProperties evalGraphProperties() {
+        GraphOrchestrationProperties p = new GraphOrchestrationProperties();
+        p.setReactEnabled(false);
+        p.getApproval().setEnabled(false);
+        return p;
+    }
+
+    private static ToolCatalog emptyCatalog() {
+        return List::of;
     }
 
     private static KnowledgeRetriever ragOn() {
